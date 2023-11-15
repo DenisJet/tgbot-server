@@ -30,6 +30,32 @@ export class BotService implements OnModuleInit {
     });
   }
 
+  async sendReputationMessage(
+    chatId: number,
+    replyUserName: string,
+    fromUserName: string,
+    bot: TelegramBot,
+    telegramId: string,
+  ) {
+    const reputationData = await this.getReputation(telegramId);
+    bot.sendMessage(
+      chatId,
+      `Поздравляю, ${replyUserName}! Участник ${fromUserName} повысил твою репутацию! Твоя репутация ${reputationData.reputation}`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: 'Статистика чата',
+                url: 'http://google.com',
+              },
+            ],
+          ],
+        },
+      },
+    );
+  }
+
   async getReputation(telegramId: string): Promise<Reputations> {
     return await this.prisma.reputations.findFirst({
       where: { telegramId },
@@ -47,13 +73,12 @@ export class BotService implements OnModuleInit {
     await this.prisma.reputations.create({ data });
   }
 
-  async handleThanksWordReaction(msg: TelegramBot.Message, bot: TelegramBot) {
-    const telegramId = String(msg.reply_to_message.from.id);
-    const avatarUrl = await this.getUserAvatarUrl(
-      msg.reply_to_message.from.id,
-      bot,
-    );
-
+  async increaseReputation(
+    telegramId: string,
+    userName: string,
+    fullName: string,
+    userAvatar,
+  ) {
     const reputationData = await this.getReputation(telegramId);
 
     if (reputationData) {
@@ -66,12 +91,27 @@ export class BotService implements OnModuleInit {
 
     await this.addNewReputation({
       telegramId,
-      userName: msg.reply_to_message.from?.username
+      userName,
+      userAvatar,
+      fullName,
+    });
+  }
+
+  async handleThanksWordReaction(msg: TelegramBot.Message, bot: TelegramBot) {
+    const telegramId = String(msg.reply_to_message.from.id);
+    const avatarUrl = await this.getUserAvatarUrl(
+      msg.reply_to_message.from.id,
+      bot,
+    );
+
+    this.increaseReputation(
+      telegramId,
+      msg.reply_to_message.from?.username
         ? msg.reply_to_message.from.username
         : '',
-      userAvatar: avatarUrl,
-      fullName: `${msg.reply_to_message.from?.first_name} ${msg.reply_to_message.from?.last_name}`,
-    });
+      avatarUrl,
+      `${msg.reply_to_message.from?.first_name} ${msg.reply_to_message.from?.last_name}`,
+    );
 
     bot.sendMessage(
       msg.chat.id,
@@ -82,6 +122,30 @@ export class BotService implements OnModuleInit {
       }! Участник ${
         msg.from.first_name
       } повысил твою репутацию! Твоя репутация ${reputationData.reputation}`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: 'Статистика чата',
+                url: 'http://localhost:3001',
+              },
+            ],
+          ],
+        },
+      },
+    );
+
+    this.sendReputationMessage(
+      msg.chat.id,
+      `${msg.reply_to_message.from.first_name} ${
+        msg.reply_to_message.from?.username
+          ? `(@${msg.reply_to_message.from?.username})`
+          : ''
+      }`,
+      msg.from.first_name,
+      bot,
+      telegramId,
     );
   }
 

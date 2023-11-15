@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Prisma, Reputations } from '@prisma/client';
 import TelegramBot = require('node-telegram-bot-api');
 import { PrismaService } from 'src/prisma.service';
 
@@ -29,10 +30,58 @@ export class BotService implements OnModuleInit {
     });
   }
 
+  async getReputation(telegramId: string): Promise<Reputations> {
+    return await this.prisma.reputations.findFirst({
+      where: { telegramId },
+    });
+  }
+
+  async updateReputation(reputation: number, id: number): Promise<void> {
+    await this.prisma.reputations.update({
+      where: { id },
+      data: { reputation },
+    });
+  }
+
+  async addNewReputation(data: Prisma.ReputationsCreateInput): Promise<void> {
+    await this.prisma.reputations.create({ data });
+  }
+
   async handleThanksWordReaction(msg: TelegramBot.Message, bot: TelegramBot) {
+    const telegramId = String(msg.reply_to_message.from.id);
     const avatarUrl = await this.getUserAvatarUrl(
       msg.reply_to_message.from.id,
       bot,
+    );
+
+    const reputationData = await this.getReputation(telegramId);
+
+    if (reputationData) {
+      await this.updateReputation(
+        reputationData.reputation + 1,
+        reputationData.id,
+      );
+      return;
+    }
+
+    await this.addNewReputation({
+      telegramId,
+      userName: msg.reply_to_message.from?.username
+        ? msg.reply_to_message.from.username
+        : '',
+      userAvatar: avatarUrl,
+      fullName: `${msg.reply_to_message.from?.first_name} ${msg.reply_to_message.from?.last_name}`,
+    });
+
+    bot.sendMessage(
+      msg.chat.id,
+      `Поздравляю, ${msg.reply_to_message.from.first_name} ${
+        msg.reply_to_message.from?.username
+          ? `(@${msg.reply_to_message.from?.username})`
+          : ''
+      }! Участник ${
+        msg.from.first_name
+      } повысил твою репутацию! Твоя репутация ${reputationData.reputation}`,
     );
   }
 

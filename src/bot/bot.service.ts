@@ -50,7 +50,7 @@ export class BotService implements OnModuleInit {
           .toLowerCase()
           .split(' ')
           .find((word) =>
-            thanksWord.includes(
+            thanksWords.includes(
               word.replace(/[&\/\\#,+()$~%.'":*?!<>{}]/g, ''),
             ),
           );

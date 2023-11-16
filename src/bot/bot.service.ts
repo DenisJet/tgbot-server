@@ -13,6 +13,14 @@ export class BotService implements OnModuleInit {
 
   async botMessage() {
     const bot = new TelegramBot(process.env.BOT_API_TOKEN, { polling: true });
+    const thanksWords = [
+      'спасибо',
+      'спс',
+      'благодарю',
+      'заработало',
+      'сработало',
+      '👍',
+    ];
 
     bot.on('new_chat_members', (msg) =>
       bot.sendMessage(
@@ -24,6 +32,30 @@ export class BotService implements OnModuleInit {
     bot.on('message', (msg) => {
       if (msg?.sticker) {
         if (msg.sticker.emoji === '👍') {
+          this.handleThanksWordReaction(msg, bot);
+        }
+        return;
+      }
+
+      if (msg?.reply_to_message) {
+        if (
+          msg.reply_to_message.from.username === 'tgBot' ||
+          msg.reply_to_message.from.username ===
+            msg.reply_to_message.from.username
+        ) {
+          return;
+        }
+
+        const thanksWord = msg.text
+          .toLowerCase()
+          .split(' ')
+          .find((word) =>
+            thanksWord.includes(
+              word.replace(/[&\/\\#,+()$~%.'":*?!<>{}]/g, ''),
+            ),
+          );
+
+        if (thanksWord) {
           this.handleThanksWordReaction(msg, bot);
         }
       }
@@ -94,6 +126,7 @@ export class BotService implements OnModuleInit {
       userName,
       userAvatar,
       fullName,
+      reputation: 1,
     });
   }
 
@@ -104,7 +137,7 @@ export class BotService implements OnModuleInit {
       bot,
     );
 
-    this.increaseReputation(
+    await this.increaseReputation(
       telegramId,
       msg.reply_to_message.from?.username
         ? msg.reply_to_message.from.username
@@ -113,30 +146,7 @@ export class BotService implements OnModuleInit {
       `${msg.reply_to_message.from?.first_name} ${msg.reply_to_message.from?.last_name}`,
     );
 
-    bot.sendMessage(
-      msg.chat.id,
-      `Поздравляю, ${msg.reply_to_message.from.first_name} ${
-        msg.reply_to_message.from?.username
-          ? `(@${msg.reply_to_message.from?.username})`
-          : ''
-      }! Участник ${
-        msg.from.first_name
-      } повысил твою репутацию! Твоя репутация ${reputationData.reputation}`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: 'Статистика чата',
-                url: 'http://localhost:3001',
-              },
-            ],
-          ],
-        },
-      },
-    );
-
-    this.sendReputationMessage(
+    await this.sendReputationMessage(
       msg.chat.id,
       `${msg.reply_to_message.from.first_name} ${
         msg.reply_to_message.from?.username

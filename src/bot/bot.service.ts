@@ -39,7 +39,7 @@ export class BotService implements OnModuleInit {
 
       if (msg?.reply_to_message) {
         if (
-          msg.reply_to_message.from.username === 'tgBot' ||
+          msg.reply_to_message.from.username === 'tg_main_user_bot' ||
           msg.reply_to_message.from.username ===
             msg.reply_to_message.from.username
         ) {

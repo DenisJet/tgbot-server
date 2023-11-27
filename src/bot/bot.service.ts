@@ -29,15 +29,30 @@ export class BotService implements OnModuleInit {
       ),
     );
 
-    bot.on('message', (msg) => {
-      if (msg?.sticker) {
-        if (msg.sticker.emoji === '👍') {
-          this.handleThanksWordReaction(msg, bot);
-        }
-        return;
-      }
+    bot.on(
+      'left_chat_member',
+      async (msg) =>
+        await this.removeReputation(String(msg.left_chat_member.id)),
+    );
 
-      if (msg?.reply_to_message) {
+    bot.on('message', async (msg) => {
+      if (msg.reply_to_message) {
+        const user = await bot.getChatMember(
+          msg.chat.id,
+          msg.reply_to_message.from.id,
+        );
+
+        if (user.status === 'left') {
+          return;
+        }
+
+        if (msg?.sticker) {
+          if (msg.sticker.emoji === '👍') {
+            this.handleThanksWordReaction(msg, bot);
+          }
+          return;
+        }
+
         if (
           msg.reply_to_message.from.username === 'tg_main_user_bot' ||
           msg.reply_to_message.from.username ===
@@ -60,6 +75,16 @@ export class BotService implements OnModuleInit {
         }
       }
     });
+  }
+
+  async removeReputation(telegramId: string) {
+    const user = await this.prisma.reputations.findFirst({
+      where: { telegramId },
+    });
+
+    if (user) {
+      await this.prisma.reputations.delete({ where: { id: user.id } });
+    }
   }
 
   async sendReputationMessage(
@@ -131,9 +156,9 @@ export class BotService implements OnModuleInit {
   }
 
   async handleThanksWordReaction(msg: TelegramBot.Message, bot: TelegramBot) {
-    const telegramId = String(msg.reply_to_message.from.id);
+    const telegramId = String(msg?.reply_to_message?.from?.id);
     const avatarUrl = await this.getUserAvatarUrl(
-      msg.reply_to_message.from.id,
+      msg?.reply_to_message?.from?.id,
       bot,
     );
 

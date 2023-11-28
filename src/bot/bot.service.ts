@@ -87,6 +87,10 @@ export class BotService implements OnModuleInit {
     }
   }
 
+  async getAllReputations(): Promise<Reputations[]> {
+    return await this.prisma.reputations.findMany();
+  }
+
   async sendReputationMessage(
     chatId: number,
     replyUserName: string,

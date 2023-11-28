@@ -25,7 +25,7 @@ export class BotService implements OnModuleInit {
     bot.on('new_chat_members', (msg) =>
       bot.sendMessage(
         msg.chat.id,
-        `Привет, ${msg.new_chat_members[0].first_name}! Это чат тестового приложения tgBot.`,
+        `Привет, ${msg.new_chat_members[0].first_name}! Добро пожаловать в тестовый чат`,
       ),
     );
 
@@ -36,7 +36,7 @@ export class BotService implements OnModuleInit {
     );
 
     bot.on('message', async (msg) => {
-      if (msg.reply_to_message) {
+      if (msg?.reply_to_message) {
         const user = await bot.getChatMember(
           msg.chat.id,
           msg.reply_to_message.from.id,
@@ -54,9 +54,8 @@ export class BotService implements OnModuleInit {
         }
 
         if (
-          msg.reply_to_message.from.username === 'tg_main_user_bot' ||
-          msg.reply_to_message.from.username ===
-            msg.reply_to_message.from.username
+          msg.reply_to_message.from.username === 'skill_blog_bot' ||
+          msg.reply_to_message.from.username === msg.from.username
         ) {
           return;
         }
@@ -93,22 +92,23 @@ export class BotService implements OnModuleInit {
 
   async sendReputationMessage(
     chatId: number,
-    replyUserName: string,
-    fromUserName: string,
+    replyUsername: string,
+    fromUsername: string,
     bot: TelegramBot,
     telegramId: string,
   ) {
     const reputationData = await this.getReputation(telegramId);
+
     bot.sendMessage(
       chatId,
-      `Поздравляю, ${replyUserName}! Участник ${fromUserName} повысил твою репутацию! Твоя репутация ${reputationData.reputation}`,
+      `Поздравляю, ${replyUsername}! Участник ${fromUsername} повысил твою репутацию, так держать! Твоя репутация ${reputationData.reputation}`,
       {
         reply_markup: {
           inline_keyboard: [
             [
               {
                 text: 'Статистика чата',
-                url: 'http://google.com',
+                url: 'https://skill-bot-client.vercel.app',
               },
             ],
           ],
@@ -136,9 +136,9 @@ export class BotService implements OnModuleInit {
 
   async increaseReputation(
     telegramId: string,
-    userName: string,
+    username: string,
     fullName: string,
-    userAvatar,
+    userAvatar: string,
   ) {
     const reputationData = await this.getReputation(telegramId);
 
@@ -152,7 +152,7 @@ export class BotService implements OnModuleInit {
 
     await this.addNewReputation({
       telegramId,
-      userName,
+      username,
       userAvatar,
       fullName,
       reputation: 1,
@@ -160,9 +160,9 @@ export class BotService implements OnModuleInit {
   }
 
   async handleThanksWordReaction(msg: TelegramBot.Message, bot: TelegramBot) {
-    const telegramId = String(msg?.reply_to_message?.from?.id);
-    const avatarUrl = await this.getUserAvatarUrl(
-      msg?.reply_to_message?.from?.id,
+    const telegramId = String(msg.reply_to_message.from.id);
+    const userAvatar = await this.getUserAvatarUrl(
+      msg.reply_to_message.from.id,
       bot,
     );
 
@@ -171,8 +171,8 @@ export class BotService implements OnModuleInit {
       msg.reply_to_message.from?.username
         ? msg.reply_to_message.from.username
         : '',
-      avatarUrl,
       `${msg.reply_to_message.from?.first_name} ${msg.reply_to_message.from?.last_name}`,
+      userAvatar,
     );
 
     await this.sendReputationMessage(

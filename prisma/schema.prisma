@@ -11,10 +11,10 @@ datasource db {
 }
 
 model Reputations {
-  id Int @default(autoincrement()) @id
+  id         Int    @id @default(autoincrement())
   telegramId String
-  userName String
-  fullName String
-  reputation Int @default(0)
+  username   String
+  fullName   String
+  reputation Int    @default(0)
   userAvatar String
 }
